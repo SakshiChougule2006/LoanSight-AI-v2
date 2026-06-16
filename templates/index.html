@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>LoanSight AI v2 — Advanced Loan Default Prediction</title>
+<style>
+:root{--bg:#0D1117;--card:#161B22;--border:#30363D;--accent:#58A6FF;--green:#3FB950;--red:#F85149;--yellow:#D29922;--purple:#BC8CFF;--text:#E6EDF3;--sub:#8B949E;--r:10px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh}
+
+/* NAV */
+nav{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:100}
+.logo{font-size:1.2rem;font-weight:800;padding:16px 0;margin-right:32px;letter-spacing:-0.5px}
+.logo span{color:var(--accent)}
+.nav-tabs{display:flex;gap:0}
+.tab{padding:18px 20px;color:var(--sub);font-size:0.88rem;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.badge{margin-left:auto;background:#1f3a5f;color:var(--accent);font-size:.7rem;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid var(--accent)}
+
+/* PAGES */
+.page{display:none;max-width:1200px;margin:0 auto;padding:32px 24px 60px}
+.page.active{display:block}
+
+/* HERO */
+.hero{text-align:center;padding:40px 20px 32px}
+.hero h1{font-size:2.6rem;font-weight:800;letter-spacing:-1.5px;line-height:1.1}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{color:var(--sub);margin-top:10px;font-size:1rem}
+.hero-badges{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap}
+.hb{background:var(--card);border:1px solid var(--border);padding:5px 14px;border-radius:20px;font-size:.78rem;color:var(--sub)}
+.hb b{color:var(--text)}
+
+/* METRICS */
+.metrics{display:flex;justify-content:center;gap:14px;flex-wrap:wrap;padding:0 0 32px}
+.mc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 24px;text-align:center;min-width:140px}
+.mc.hi{border-color:var(--accent)}
+.mc .v{font-size:1.8rem;font-weight:700}
+.mc .l{color:var(--sub);font-size:.75rem;margin-top:3px}
+
+/* GRID */
+.grid{display:grid;gap:18px}
+.g2{grid-template-columns:1fr 1fr}
+.g3{grid-template-columns:1fr 1fr 1fr}
+.full{grid-column:1/-1}
+@media(max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+
+/* PANEL */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:24px}
+.panel h2{font-size:.95rem;font-weight:700;margin-bottom:16px;letter-spacing:.2px}
+.panel h2 .tag{font-size:.68rem;font-weight:500;color:var(--sub);background:#21262D;padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle}
+.panel h2 .newtag{font-size:.65rem;font-weight:700;color:var(--green);background:#0d2318;border:1px solid var(--green);padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle}
+
+/* FORM */
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:.77rem;color:var(--sub);margin-bottom:5px}
+.fg input,.fg select{width:100%;background:#21262D;border:1px solid var(--border);border-radius:6px;color:var(--text);padding:9px 12px;font-size:.87rem;outline:none;transition:border .2s}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.fg select option{background:#21262D}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* BTN */
+.btn{padding:11px 20px;border:none;border-radius:7px;cursor:pointer;font-size:.88rem;font-weight:700;letter-spacing:.3px;transition:opacity .2s}
+.btn:hover{opacity:.85}
+.btn-accent{background:var(--accent);color:#0D1117;width:100%;padding:13px;margin-top:14px}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--sub);margin-top:10px;width:100%}
+.btn-green{background:var(--green);color:#0D1117;width:100%;padding:11px;margin-top:10px}
+.btn-purple{background:var(--purple);color:#0D1117;width:100%;padding:11px;margin-top:8px}
+
+/* RESULT */
+.result-box{margin-top:16px;border-radius:8px;padding:18px;display:none;text-align:center;border:1px solid}
+.result-box.low{background:#0d2318;border-color:var(--green)}
+.result-box.high{background:#2a0e0e;border-color:var(--red)}
+.r-label{font-size:1.6rem;font-weight:800;letter-spacing:1px}
+.low .r-label{color:var(--green)}.high .r-label{color:var(--red)}
+.r-prob{font-size:.88rem;color:var(--sub);margin-top:4px}
+
+/* GAUGE */
+.gauge-wrap{margin-top:14px;position:relative}
+.gauge-arc{width:160px;height:80px;margin:0 auto;position:relative}
+.gauge-svg{width:100%;height:100%}
+.gauge-val{position:absolute;bottom:0;left:50%;transform:translateX(-50%);font-size:1.4rem;font-weight:800;text-align:center}
+
+/* SHAP */
+.shap-bars{margin-top:12px}
+.shap-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:.8rem}
+.shap-name{width:140px;color:var(--sub);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.75rem}
+.shap-bar-wrap{flex:1;height:14px;background:#21262D;border-radius:4px;overflow:hidden;position:relative}
+.shap-bar{height:100%;border-radius:4px;transition:width .5s}
+.shap-val{width:50px;color:var(--sub);font-size:.73rem;text-align:right}
+.shap-section-title{font-size:.78rem;font-weight:700;margin:10px 0 6px;letter-spacing:.3px}
+.shap-pos .shap-section-title{color:var(--red)}
+.shap-neg .shap-section-title{color:var(--green)}
+
+/* COMPARISON */
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.comp-result{background:#21262D;border-radius:8px;padding:14px;text-align:center;border:1px solid var(--border)}
+.comp-result.low{border-color:var(--green)}.comp-result.high{border-color:var(--red)}
+
+/* WHATIF */
+.wi-slider-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.wi-slider-row label{width:160px;font-size:.78rem;color:var(--sub)}
+.wi-slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.wi-slider-row .wi-val{width:60px;text-align:right;font-size:.82rem;font-weight:600;color:var(--text)}
+.wi-result-strip{display:flex;align-items:center;justify-content:center;gap:20px;padding:14px;background:#21262D;border-radius:8px;margin-top:16px;border:1px solid var(--border)}
+
+/* TABLE */
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th{color:var(--sub);font-weight:600;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid #21262D}
+tr:last-child td{border-bottom:none}
+.pill{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:600}
+.pill.best{background:#1f3a5f;color:var(--accent)}
+.pill.new{background:#1a2a1a;color:var(--green)}
+
+/* CHART IMG */
+.chart-img{width:100%;border-radius:8px;border:1px solid var(--border)}
+
+/* BATCH */
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:border .2s;margin-bottom:14px}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent)}
+.drop-zone p{color:var(--sub);font-size:.9rem;margin-top:8px}
+.drop-zone .icon{font-size:2.5rem}
+
+/* CHIP */
+.stack{display:flex;flex-wrap:wrap;gap:7px;margin-top:8px}
+.chip{background:#21262D;border:1px solid var(--border);color:var(--sub);font-size:.73rem;padding:3px 10px;border-radius:20px}
+
+/* COLORS */
+.ca{color:var(--accent)}.cg{color:var(--green)}.cr{color:var(--red)}.cy{color:var(--yellow)}.cp{color:var(--purple)}
+
+/* SPINNER */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+footer{text-align:center;color:var(--sub);font-size:.78rem;padding:20px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Loan<span>Sight</span> <span style="color:var(--sub);font-size:.8rem;font-weight:400">AI v2</span></div>
+  <div class="nav-tabs">
+    <div class="tab active" onclick="showPage('predict',this)">⚡ Predict</div>
+    <div class="tab" onclick="showPage('whatif',this)">🎛 What-If</div>
+    <div class="tab" onclick="showPage('compare',this)">⚖ Compare</div>
+    <div class="tab" onclick="showPage('batch',this)">📂 Batch</div>
+    <div class="tab" onclick="showPage('analytics',this)">📊 Analytics</div>
+    <div class="tab" onclick="showPage('api',this)">🔌 API Docs</div>
+  </div>
+  <span class="badge">Portfolio Project</span>
+</nav>
+
+<!-- ══════════════════════ PREDICT PAGE ══════════════════════ -->
+<div id="page-predict" class="page active">
+  <div class="hero">
+    <h1>Loan Default <em>Prediction</em></h1>
+    <p>Lending Club schema · SMOTE · Optuna-tuned XGBoost · SHAP Explainability</p>
+    <div class="hero-badges">
+      <span class="hb"><b>50,000</b> training records</span>
+      <span class="hb"><b>20</b> features</span>
+      <span class="hb">SMOTE balanced</span>
+      <span class="hb">Optuna tuned</span>
+      <span class="hb">SHAP explained</span>
+    </div>
+  </div>
+
+  <div class="metrics">
+    {% for name, r in meta.models.items() %}
+    <div class="mc {% if loop.first %}hi{% endif %}">
+      <div class="v {% if loop.index==1 %}ca{% elif loop.index==2 %}cg{% elif loop.index==3 %}cy{% else %}cr{% endif %}">
+        {{ "%.4f"|format(r.auc) if r.auc else "—" }}
+      </div>
+      <div class="l">{{ name }}<br>ROC-AUC</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="grid g2">
+    <!-- FORM -->
+    <div class="panel">
+      <h2>Applicant Details <span class="tag">Live Prediction</span></h2>
+      <div class="fgrid">
+        <div class="fg"><label>Loan Amount ($)</label><input type="number" id="loan_amnt" value="15000"></div>
+        <div class="fg"><label>Term (months)</label><select id="term"><option value="36">36</option><option value="60">60</option></select></div>
+        <div class="fg"><label>Interest Rate (%)</label><input type="number" id="int_rate" value="12.5" step="0.01"></div>
+        <div class="fg"><label>Installment ($)</label><input type="number" id="installment" value="500" step="0.01"></div>
+        <div class="fg"><label>Grade</label><select id="grade"><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
+        <div class="fg"><label>Employment Length</label>
+          <select id="emp_length"><option>< 1 year</option><option>1 year</option><option>2 years</option><option selected>5 years</option><option>10+ years</option></select></div>
+        <div class="fg"><label>Home Ownership</label><select id="home_ownership"><option>MORTGAGE</option><option>OWN</option><option selected>RENT</option><option>OTHER</option></select></div>
+        <div class="fg"><label>Annual Income ($)</label><input type="number" id="annual_inc" value="65000"></div>
+        <div class="fg"><label>Verification</label><select id="verification_status"><option>Not Verified</option><option selected>Verified</option><option>Source Verified</option></select></div>
+        <div class="fg"><label>Purpose</label><select id="purpose"><option value="debt_consolidation">Debt Consolidation</option><option value="credit_card">Credit Card</option><option value="home_improvement">Home Improvement</option><option value="medical">Medical</option><option value="other">Other</option></select></div>
+        <div class="fg"><label>DTI Ratio (%)</label><input type="number" id="dti" value="18.5" step="0.01"></div>
+        <div class="fg"><label>Delinquencies (2yr)</label><input type="number" id="delinq_2yrs" value="0" min="0"></div>
+        <div class="fg"><label>Inquiries (6mo)</label><input type="number" id="inq_last_6mths" value="1" min="0"></div>
+        <div class="fg"><label>Open Accounts</label><input type="number" id="open_acc" value="8" min="1"></div>
+        <div class="fg"><label>Public Records</label><input type="number" id="pub_rec" value="0" min="0"></div>
+        <div class="fg"><label>Revolving Balance ($)</label><input type="number" id="revol_bal" value="12000"></div>
+        <div class="fg"><label>Revolving Util (%)</label><input type="number" id="revol_util" value="45" step="0.1"></div>
+        <div class="fg"><label>Total Accounts</label><input type="number" id="total_acc" value="18"></div>
+        <div class="fg"><label>FICO Low</label><input type="number" id="fico_range_low" value="680"></div>
+        <div class="fg"><label>FICO High</label><input type="number" id="fico_range_high" value="684"></div>
+      </div>
+      <button class="btn btn-accent" onclick="predict()">⚡ Predict Default Risk</button>
+      <button class="btn btn-green" id="pdf-btn" style="display:none" onclick="generatePDF()">📄 Download Decision Letter (PDF)</button>
+      <button class="btn btn-purple" id="batch-sample-btn" onclick="showPage('batch',document.querySelector('.tab:nth-child(4)'))">📂 Try Batch Prediction →</button>
+    </div>
+
+    <!-- RESULT + SHAP -->
+    <div>
+      <div class="panel" id="result-panel">
+        <h2>Risk Assessment <span class="newtag">SHAP</span></h2>
+        <div id="result-box" class="result-box">
+          <!-- Gauge -->
+          <div class="gauge-wrap">
+            <svg class="gauge-svg" viewBox="0 0 200 110" style="width:180px;height:100px;display:block;margin:0 auto">
+              <path d="M20,100 A80,80,0,0,1,180,100" fill="none" stroke="#30363D" stroke-width="16" stroke-linecap="round"/>
+              <path id="gauge-path" d="M20,100 A80,80,0,0,1,180,100" fill="none" stroke="#58A6FF" stroke-width="16" stroke-linecap="round" stroke-dasharray="251.2" stroke-dashoffset="251.2" style="transition:stroke-dashoffset .7s ease,stroke .4s"/>
+              <text id="gauge-pct" x="100" y="95" text-anchor="middle" font-size="22" font-weight="800" fill="#E6EDF3">0%</text>
+            </svg>
+          </div>
+          <div class="r-label" id="r-label">—</div>
+          <div class="r-prob" id="r-prob">Fill the form and click Predict</div>
+        </div>
+        <div id="result-init" style="text-align:center;padding:40px 0;color:var(--sub)">
+          <div style="font-size:3rem">🎯</div>
+          <p style="margin-top:10px;font-size:.9rem">Fill the form and click <b style="color:var(--text)">Predict Default Risk</b></p>
+        </div>
+      </div>
+
+      <div class="panel" id="shap-panel" style="margin-top:18px;display:none">
+        <h2>Why this prediction? <span class="newtag">SHAP Explainability</span></h2>
+        <div class="shap-bars">
+          <div class="shap-pos">
+            <div class="shap-section-title">🔺 Features INCREASING risk</div>
+            <div id="shap-pos-bars"></div>
+          </div>
+          <div class="shap-neg" style="margin-top:10px">
+            <div class="shap-section-title">🔻 Features DECREASING risk</div>
+            <div id="shap-neg-bars"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ WHAT-IF PAGE ══════════════════════ -->
+<div id="page-whatif" class="page">
+  <div class="hero">
+    <h1>What-If <em>Simulator</em></h1>
+    <p>Adjust sliders in real-time and watch the risk score update instantly</p>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Adjust Parameters</h2>
+      <div class="wi-slider-row"><label>FICO Score <span id="wv-fico" class="wi-val">700</span></label><input type="range" id="wi-fico" min="610" max="845" value="700" oninput="document.getElementById('wv-fico').textContent=this.value;whatIf()"></div>
+      <div class="wi-slider-row"><label>Annual Income <span id="wv-inc" class="wi-val">$65k</span></label><input type="range" id="wi-inc" min="12000" max="200000" step="1000" value="65000" oninput="document.getElementById('wv-inc').textContent='$'+Math.round(this.value/1000)+'k';whatIf()"></div>
+      <div class="wi-slider-row"><label>DTI Ratio <span id="wv-dti" class="wi-val">18%</span></label><input type="range" id="wi-dti" min="0" max="40" step="0.5" value="18" oninput="document.getElementById('wv-dti').textContent=this.value+'%';whatIf()"></div>
+      <div class="wi-slider-row"><label>Interest Rate <span id="wv-int" class="wi-val">12.5%</span></label><input type="range" id="wi-int" min="5" max="31" step="0.1" value="12.5" oninput="document.getElementById('wv-int').textContent=this.value+'%';whatIf()"></div>
+      <div class="wi-slider-row"><label>Delinquencies <span id="wv-del" class="wi-val">0</span></label><input type="range" id="wi-del" min="0" max="5" step="1" value="0" oninput="document.getElementById('wv-del').textContent=this.value;whatIf()"></div>
+      <div class="wi-slider-row"><label>Revolving Util <span id="wv-rev" class="wi-val">45%</span></label><input type="range" id="wi-rev" min="0" max="100" step="1" value="45" oninput="document.getElementById('wv-rev').textContent=this.value+'%';whatIf()"></div>
+      <div class="wi-slider-row"><label>Loan Amount <span id="wv-la" class="wi-val">$15k</span></label><input type="range" id="wi-la" min="1000" max="40000" step="500" value="15000" oninput="document.getElementById('wv-la').textContent='$'+Math.round(this.value/1000)+'k';whatIf()"></div>
+      <div class="fg" style="margin-top:14px"><label>Grade</label>
+        <select id="wi-grade" onchange="whatIf()"><option>A</option><option>B</option><option selected>C</option><option>D</option><option>E</option><option>F</option><option>G</option></select></div>
+    </div>
+    <div class="panel">
+      <h2>Live Risk Score</h2>
+      <div style="text-align:center;padding:30px 0">
+        <svg viewBox="0 0 220 130" style="width:200px;height:120px;display:block;margin:0 auto">
+          <path d="M25,110 A85,85,0,0,1,195,110" fill="none" stroke="#30363D" stroke-width="18" stroke-linecap="round"/>
+          <path id="wi-arc" d="M25,110 A85,85,0,0,1,195,110" fill="none" stroke="#58A6FF" stroke-width="18" stroke-linecap="round" stroke-dasharray="267" stroke-dashoffset="267" style="transition:all .3s"/>
+          <text id="wi-pct" x="110" y="105" text-anchor="middle" font-size="26" font-weight="800" fill="#E6EDF3">—</text>
+        </svg>
+        <div id="wi-label" style="font-size:1.4rem;font-weight:800;margin-top:8px;color:var(--sub)">Adjust sliders →</div>
+        <div id="wi-tip" style="color:var(--sub);font-size:.85rem;margin-top:8px"></div>
+      </div>
+      <div id="wi-history" style="margin-top:10px">
+        <div style="font-size:.8rem;color:var(--sub);margin-bottom:8px;font-weight:600">HISTORY</div>
+        <div id="wi-hist-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ COMPARE PAGE ══════════════════════ -->
+<div id="page-compare" class="page">
+  <div class="hero">
+    <h1>Applicant <em>Comparison</em></h1>
+    <p>Compare two applicants side-by-side</p>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Applicant A</h2>
+      <div class="fgrid">
+        <div class="fg"><label>Loan Amount</label><input id="ca-loan_amnt" type="number" value="10000"></div>
+        <div class="fg"><label>Term</label><select id="ca-term"><option value="36">36</option><option value="60">60</option></select></div>
+        <div class="fg"><label>Int Rate %</label><input id="ca-int_rate" type="number" value="8.5"></div>
+        <div class="fg"><label>Grade</label><select id="ca-grade"><option selected>A</option><option>B</option><option>C</option><option>D</option><option>E</option></select></div>
+        <div class="fg"><label>FICO Low</label><input id="ca-fico_range_low" type="number" value="760"></div>
+        <div class="fg"><label>DTI</label><input id="ca-dti" type="number" value="10"></div>
+        <div class="fg"><label>Annual Income</label><input id="ca-annual_inc" type="number" value="90000"></div>
+        <div class="fg"><label>Delinquencies</label><input id="ca-delinq_2yrs" type="number" value="0"></div>
+      </div>
+      <div id="comp-a" class="comp-result" style="margin-top:12px">—</div>
+    </div>
+    <div class="panel">
+      <h2>Applicant B</h2>
+      <div class="fgrid">
+        <div class="fg"><label>Loan Amount</label><input id="cb-loan_amnt" type="number" value="35000"></div>
+        <div class="fg"><label>Term</label><select id="cb-term"><option value="36">36</option><option value="60" selected>60</option></select></div>
+        <div class="fg"><label>Int Rate %</label><input id="cb-int_rate" type="number" value="24.5"></div>
+        <div class="fg"><label>Grade</label><select id="cb-grade"><option>A</option><option>B</option><option>C</option><option selected>D</option><option>E</option></select></div>
+        <div class="fg"><label>FICO Low</label><input id="cb-fico_range_low" type="number" value="630"></div>
+        <div class="fg"><label>DTI</label><input id="cb-dti" type="number" value="35"></div>
+        <div class="fg"><label>Annual Income</label><input id="cb-annual_inc" type="number" value="32000"></div>
+        <div class="fg"><label>Delinquencies</label><input id="cb-delinq_2yrs" type="number" value="2"></div>
+      </div>
+      <div id="comp-b" class="comp-result" style="margin-top:12px">—</div>
+    </div>
+    <div class="full">
+      <button class="btn btn-accent" style="max-width:300px;margin:0 auto;display:block" onclick="compareApplicants()">⚖ Compare Both Applicants</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ BATCH PAGE ══════════════════════ -->
+<div id="page-batch" class="page">
+  <div class="hero">
+    <h1>Batch <em>Prediction</em></h1>
+    <p>Upload a CSV of applicants — get predictions + risk labels back as a downloadable file</p>
+  </div>
+  <div class="grid g2">
+    <div class="panel">
+      <h2>Upload CSV <span class="newtag">NEW</span></h2>
+      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-input').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)">
+        <div class="icon">📂</div>
+        <p>Click to upload or drag & drop your CSV</p>
+        <p style="font-size:.75rem;margin-top:5px">Required columns: loan_amnt, term, int_rate, grade, fico_range_low, dti, annual_inc, delinq_2yrs...</p>
+      </div>
+      <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="handleFileSelect(event)">
+      <div id="file-info" style="display:none;padding:10px;background:#21262D;border-radius:7px;font-size:.83rem;margin-bottom:10px"></div>
+      <button class="btn btn-accent" id="batch-btn" onclick="runBatch()" style="display:none">🚀 Run Batch Prediction</button>
+      <div id="batch-status" style="margin-top:12px;color:var(--sub);font-size:.85rem"></div>
+    </div>
+    <div class="panel">
+      <h2>Required CSV Format</h2>
+      <p style="color:var(--sub);font-size:.82rem;margin-bottom:12px">Your CSV must contain these columns (matching Lending Club schema):</p>
+      <div style="background:#21262D;border-radius:7px;padding:12px;font-family:monospace;font-size:.75rem;color:var(--sub);overflow-x:auto">
+loan_amnt, term, int_rate, installment,<br>
+grade, emp_length, home_ownership,<br>
+annual_inc, verification_status, purpose,<br>
+dti, delinq_2yrs, inq_last_6mths,<br>
+open_acc, pub_rec, revol_bal,<br>
+revol_util, total_acc,<br>
+fico_range_low, fico_range_high
+      </div>
+      <button class="btn btn-outline" onclick="downloadSampleCSV()">⬇ Download Sample CSV (5 rows)</button>
+      <div style="margin-top:16px;padding:12px;background:#0d2318;border:1px solid var(--green);border-radius:8px;font-size:.82rem">
+        <b style="color:var(--green)">Output CSV includes:</b>
+        <p style="color:var(--sub);margin-top:5px">All original columns + <code style="color:var(--accent)">default_probability</code> + <code style="color:var(--accent)">risk_label</code></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ ANALYTICS PAGE ══════════════════════ -->
+<div id="page-analytics" class="page">
+  <div class="hero">
+    <h1>Model <em>Analytics</em></h1>
+    <p>ROC curves · SHAP · Feature importance · Optuna tuning · Correlation heatmap</p>
+  </div>
+  <div class="grid g2">
+    <div class="panel"><h2>ROC Curve Comparison <span class="tag">All Models + Tuned</span></h2><img class="chart-img" src="/static/images/roc_v2.png" alt="ROC"></div>
+    <div class="panel"><h2>Optuna Tuning Progress <span class="newtag">NEW</span></h2><img class="chart-img" src="/static/images/optuna_chart.png" alt="Optuna"></div>
+    <div class="panel full"><h2>SHAP Summary — Global Feature Impact <span class="newtag">NEW</span></h2><img class="chart-img" src="/static/images/shap_summary.png" alt="SHAP"></div>
+    <div class="panel"><h2>Feature Importance <span class="tag">Random Forest</span></h2><img class="chart-img" src="/static/images/feature_importance_v2.png" alt="FI"></div>
+    <div class="panel"><h2>Model Performance Table</h2>
+      <table><thead><tr><th>Model</th><th>ROC-AUC</th><th>SMOTE</th><th></th></tr></thead><tbody>
+      {% for name, r in meta.models.items() %}
+      <tr><td>{{ name }}</td><td><b>{{ "%.4f"|format(r.auc) }}</b></td><td style="color:var(--green)">✓</td>
+      <td>{% if loop.last %}<span class="pill new">Tuned</span>{% elif loop.first %}<span class="pill best">Best</span>{% endif %}</td></tr>
+      {% endfor %}
+      </tbody></table>
+      <div style="margin-top:14px"><h2>Tech Stack</h2>
+      <div class="stack"><span class="chip">Python 3.11</span><span class="chip">XGBoost</span><span class="chip">Scikit-learn</span><span class="chip">SHAP</span><span class="chip">Optuna</span><span class="chip">SMOTE</span><span class="chip">Flask</span><span class="chip">ReportLab</span><span class="chip">Pandas</span></div></div>
+    </div>
+    <div class="panel full"><h2>Correlation Heatmap <span class="tag">Lending Club Features</span></h2><img class="chart-img" src="/static/images/correlation_v2.png" alt="Heatmap"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ API DOCS PAGE ══════════════════════ -->
+<div id="page-api" class="page">
+  <div class="hero"><h1>REST <em>API Docs</em></h1><p>Swagger-style documentation for all endpoints</p></div>
+  <div class="grid" style="gap:14px">
+    {% for ep in [
+      {'method':'POST','path':'/api/predict','color':'#3FB950','desc':'Single applicant prediction + SHAP explanation','body':'{"loan_amnt":15000,"term":36,"int_rate":12.5,...}','resp':'{"probability":38.2,"label":"LOW RISK","shap_top_positive":[...],"shap_top_negative":[...]}'},
+      {'method':'POST','path':'/api/generate_letter','color':'#58A6FF','desc':'Generate PDF approval/rejection letter','body':'Same as /api/predict','resp':'PDF file download'},
+      {'method':'POST','path':'/api/batch_predict','color':'#D29922','desc':'Batch prediction from CSV upload (multipart/form-data)','body':'file: <CSV upload>','resp':'CSV file with default_probability + risk_label columns'},
+      {'method':'POST','path':'/api/whatif','color':'#BC8CFF','desc':'Real-time what-if scenario scoring','body':'{"loan_amnt":15000,"fico_range_low":700,...}','resp':'{"probability":42.1,"label":"LOW RISK"}'}
+    ] %}
+    <div class="panel">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+        <span style="background:{{ ep.color }}22;color:{{ ep.color }};border:1px solid {{ ep.color }};padding:4px 12px;border-radius:6px;font-size:.8rem;font-weight:700">{{ ep.method }}</span>
+        <code style="color:var(--text);font-size:.9rem">{{ ep.path }}</code>
+      </div>
+      <p style="color:var(--sub);font-size:.85rem;margin-bottom:12px">{{ ep.desc }}</p>
+      <div style="background:#21262D;border-radius:6px;padding:10px;font-family:monospace;font-size:.75rem;color:var(--sub);margin-bottom:8px"><b style="color:var(--text)">Request body:</b><br>{{ ep.body }}</div>
+      <div style="background:#21262D;border-radius:6px;padding:10px;font-family:monospace;font-size:.75rem;color:var(--sub)"><b style="color:var(--text)">Response:</b><br>{{ ep.resp }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<footer>LoanSight AI v2 &nbsp;·&nbsp; Built by Sakshi &nbsp;·&nbsp; B.Tech CSE (AI & ML), Rajarambapu Institute of Technology</footer>
+
+<script>
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showPage(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(el) el.classList.add('active');
+}
+
+// ── Build payload from form ───────────────────────────────────────────────────
+function getPayload(prefix='') {
+  const g = id => document.getElementById((prefix?prefix+'-':'')+id)?.value;
+  return {
+    loan_amnt: g('loan_amnt'), term: g('term'), int_rate: g('int_rate'),
+    installment: g('installment')||Math.round(g('loan_amnt')*g('int_rate')/100/12/(1-Math.pow(1+g('int_rate')/100/12,-g('term')))),
+    grade: g('grade'), emp_length: g('emp_length')||'5 years',
+    home_ownership: g('home_ownership')||'RENT', annual_inc: g('annual_inc'),
+    verification_status: g('verification_status')||'Verified', purpose: g('purpose')||'debt_consolidation',
+    dti: g('dti'), delinq_2yrs: g('delinq_2yrs'), inq_last_6mths: g('inq_last_6mths')||'1',
+    open_acc: g('open_acc')||'8', pub_rec: g('pub_rec')||'0', revol_bal: g('revol_bal')||'12000',
+    revol_util: g('revol_util')||'45', total_acc: g('total_acc')||'18',
+    fico_range_low: g('fico_range_low'), fico_range_high: (parseInt(g('fico_range_low'))+4)||684
+  };
+}
+
+// ── Gauge update ─────────────────────────────────────────────────────────────
+function updateGauge(pctId, arcId, labelId, prob, label) {
+  const arc = document.getElementById(arcId);
+  const pct = document.getElementById(pctId);
+  if(!arc) return;
+  const total=251.2, offset=total-(prob/100)*total;
+  arc.style.strokeDashoffset = offset;
+  arc.style.stroke = prob>50?'#F85149':'#3FB950';
+  if(pct) pct.textContent = prob+'%';
+  if(labelId){ const el=document.getElementById(labelId); if(el){ el.textContent=label; el.style.color=prob>50?'var(--red)':'var(--green)'; } }
+}
+
+// ── Predict ───────────────────────────────────────────────────────────────────
+let lastPayload = null;
+async function predict() {
+  const payload = getPayload();
+  lastPayload   = payload;
+  const btn     = document.querySelector('#page-predict .btn-accent');
+  btn.innerHTML = '<span class="spinner"></span>Predicting...'; btn.disabled=true;
+
+  try {
+    const res  = await fetch('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const data = await res.json();
+
+    document.getElementById('result-init').style.display='none';
+    const box = document.getElementById('result-box');
+    box.style.display='block';
+    box.className='result-box '+(data.label==='HIGH RISK'?'high':'low');
+    document.getElementById('r-label').textContent=data.label;
+    document.getElementById('r-prob').textContent=`Default Probability: ${data.probability}%`;
+    updateGauge('gauge-pct','gauge-path',null,data.probability,data.label);
+
+    // SHAP
+    renderShap(data.shap_top_positive, data.shap_top_negative);
+    document.getElementById('shap-panel').style.display='block';
+    document.getElementById('pdf-btn').style.display='block';
+  } catch(e){ alert('Error: '+e.message); }
+  finally{ btn.innerHTML='⚡ Predict Default Risk'; btn.disabled=false; }
+}
+
+function renderShap(pos, neg) {
+  const maxV = Math.max(...pos.map(x=>Math.abs(x[1])), ...neg.map(x=>Math.abs(x[1])));
+  const renderBars = (items, containerId, color) => {
+    const c = document.getElementById(containerId); c.innerHTML='';
+    items.forEach(([name,val])=>{
+      const pct = Math.abs(val)/maxV*100;
+      c.innerHTML+=`<div class="shap-row">
+        <span class="shap-name" title="${name}">${name.replace(/_/g,' ')}</span>
+        <div class="shap-bar-wrap"><div class="shap-bar" style="width:${pct}%;background:${color}"></div></div>
+        <span class="shap-val">${val>0?'+':''}${val.toFixed(3)}</span>
+      </div>`;
+    });
+  };
+  renderBars(pos,'shap-pos-bars','#F85149');
+  renderBars(neg,'shap-neg-bars','#3FB950');
+}
+
+// ── PDF Letter ────────────────────────────────────────────────────────────────
+async function generatePDF() {
+  if(!lastPayload){ alert('Run prediction first'); return; }
+  const btn=document.getElementById('pdf-btn');
+  btn.innerHTML='<span class="spinner"></span>Generating PDF...'; btn.disabled=true;
+  const res=await fetch('/api/generate_letter',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(lastPayload)});
+  const blob=await res.blob();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='loan_decision.pdf'; a.click();
+  btn.innerHTML='📄 Download Decision Letter (PDF)'; btn.disabled=false;
+}
+
+// ── What-If ───────────────────────────────────────────────────────────────────
+let wiHistory=[], wiTimer=null;
+function whatIf() {
+  clearTimeout(wiTimer);
+  wiTimer = setTimeout(async ()=>{
+    const payload={
+      loan_amnt: document.getElementById('wi-la').value,
+      term:'36', int_rate:document.getElementById('wi-int').value,
+      installment:'500', grade:document.getElementById('wi-grade').value,
+      emp_length:'5 years', home_ownership:'RENT', annual_inc:document.getElementById('wi-inc').value,
+      verification_status:'Verified', purpose:'debt_consolidation',
+      dti: document.getElementById('wi-dti').value,
+      delinq_2yrs: document.getElementById('wi-del').value,
+      inq_last_6mths:'1', open_acc:'8', pub_rec:'0', revol_bal:'12000',
+      revol_util: document.getElementById('wi-rev').value,
+      total_acc:'18',
+      fico_range_low: document.getElementById('wi-fico').value,
+      fico_range_high: String(parseInt(document.getElementById('wi-fico').value)+4)
+    };
+    const res=await fetch('/api/whatif',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await res.json();
+
+    const arc=document.getElementById('wi-arc'), pct=document.getElementById('wi-pct'), lbl=document.getElementById('wi-label');
+    const total=267, offset=total-(d.probability/100)*total;
+    arc.style.strokeDashoffset=offset; arc.style.stroke=d.probability>50?'#F85149':'#3FB950';
+    pct.textContent=d.probability+'%'; pct.style.fill=d.probability>50?'#F85149':'#3FB950';
+    lbl.textContent=d.label; lbl.style.color=d.probability>50?'var(--red)':'var(--green)';
+    document.getElementById('wi-tip').textContent=`FICO ${payload.fico_range_low} · DTI ${payload.dti}% · Rate ${payload.int_rate}%`;
+
+    wiHistory.unshift({prob:d.probability,label:d.label,fico:payload.fico_range_low,dti:payload.dti});
+    if(wiHistory.length>5) wiHistory.pop();
+    const hl=document.getElementById('wi-hist-list'); hl.innerHTML='';
+    wiHistory.forEach((h,i)=>{
+      hl.innerHTML+=`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:.78rem;color:${i===0?'var(--text)':'var(--sub)'}">
+        <span>#${wiHistory.length-i} &nbsp; FICO ${h.fico} · DTI ${h.dti}%</span>
+        <span style="color:${h.prob>50?'var(--red)':'var(--green)'};font-weight:700">${h.prob}%</span>
+      </div>`;
+    });
+  }, 150);
+}
+
+// ── Compare ───────────────────────────────────────────────────────────────────
+async function compareApplicants() {
+  const fill = (prefix,id,defaults) => {
+    const payload={...defaults};
+    ['loan_amnt','term','int_rate','grade','fico_range_low','dti','annual_inc','delinq_2yrs'].forEach(k=>{
+      const el=document.getElementById(prefix+'-'+k); if(el) payload[k]=el.value;
+    });
+    payload.fico_range_high=String(parseInt(payload.fico_range_low)+4);
+    return payload;
+  };
+  const defaults={installment:'400',emp_length:'5 years',home_ownership:'RENT',annual_inc:'65000',
+                  verification_status:'Verified',purpose:'debt_consolidation',inq_last_6mths:'1',
+                  open_acc:'8',pub_rec:'0',revol_bal:'12000',revol_util:'45',total_acc:'18'};
+  const [pa,pb]=[fill('ca',null,{...defaults}),fill('cb',null,{...defaults})];
+
+  const [ra,rb] = await Promise.all([
+    fetch('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pa)}).then(r=>r.json()),
+    fetch('/api/predict',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(pb)}).then(r=>r.json())
+  ]);
+
+  ['a','b'].forEach((x,i)=>{
+    const r=i===0?ra:rb;
+    const el=document.getElementById('comp-'+x);
+    el.className='comp-result '+(r.label==='HIGH RISK'?'high':'low');
+    el.innerHTML=`<div style="font-size:1.5rem;font-weight:800;color:${r.label==='HIGH RISK'?'var(--red)':'var(--green)'}">${r.probability}%</div>
+      <div style="font-weight:700;margin-top:4px;color:${r.label==='HIGH RISK'?'var(--red)':'var(--green)'}">${r.label}</div>`;
+  });
+}
+
+// ── Batch ─────────────────────────────────────────────────────────────────────
+let selectedFile=null;
+function handleFileSelect(e){ setFile(e.target.files[0]); }
+function handleDrop(e){ e.preventDefault(); document.getElementById('drop-zone').classList.remove('dragover'); setFile(e.dataTransfer.files[0]); }
+function setFile(f){
+  if(!f||!f.name.endsWith('.csv')){ alert('Please select a CSV file'); return; }
+  selectedFile=f;
+  const info=document.getElementById('file-info');
+  info.style.display='block'; info.innerHTML=`📄 <b>${f.name}</b> &nbsp;·&nbsp; ${(f.size/1024).toFixed(1)} KB`;
+  document.getElementById('batch-btn').style.display='block';
+}
+async function runBatch(){
+  if(!selectedFile){ alert('Upload a CSV first'); return; }
+  const btn=document.getElementById('batch-btn');
+  btn.innerHTML='<span class="spinner"></span>Processing...'; btn.disabled=true;
+  document.getElementById('batch-status').textContent='Running predictions...';
+  const fd=new FormData(); fd.append('file',selectedFile);
+  const res=await fetch('/api/batch_predict',{method:'POST',body:fd});
+  const blob=await res.blob();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='batch_predictions.csv'; a.click();
+  btn.innerHTML='🚀 Run Batch Prediction'; btn.disabled=false;
+  document.getElementById('batch-status').innerHTML='<span style="color:var(--green)">✓ Done! Predictions downloaded.</span>';
+}
+function downloadSampleCSV(){
+  const rows=[
+    'loan_amnt,term,int_rate,installment,grade,emp_length,home_ownership,annual_inc,verification_status,purpose,dti,delinq_2yrs,inq_last_6mths,open_acc,pub_rec,revol_bal,revol_util,total_acc,fico_range_low,fico_range_high',
+    '15000,36,12.5,500,C,5 years,RENT,65000,Verified,debt_consolidation,18.5,0,1,8,0,12000,45,18,680,684',
+    '5000,36,7.2,155,A,10+ years,OWN,95000,Not Verified,credit_card,10,0,0,12,0,5000,20,25,760,764',
+    '28000,60,21.3,750,E,2 years,RENT,38000,Source Verified,debt_consolidation,32,1,3,5,0,22000,78,10,620,624',
+    '12000,36,15.0,416,D,< 1 year,MORTGAGE,52000,Verified,home_improvement,25,0,2,7,0,8000,60,15,650,654',
+    '40000,60,28.5,1050,F,3 years,RENT,29000,Not Verified,small_business,38,2,5,4,1,35000,92,8,610,614'
+  ];
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sample_applicants.csv'; a.click();
+}
+
+// Init what-if on load
+document.addEventListener('DOMContentLoaded', ()=>{ setTimeout(whatIf,500); });
+</script>
+</body>
+</html>
